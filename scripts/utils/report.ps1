@@ -45,45 +45,45 @@ function Generate-CleanReport {
     # ============================================================
 
     $lines = @(
-        "================================================================",
-        "     BAO CAO XOA LICH SU - USB WINDOWS HISTORY CLEANER v2.0",
-        "================================================================",
-        "",
-        "  [+] THONG TIN PHIEN CHAY",
-        "  --------------------------------------------------------------",
-        "  Thoi gian bat dau  : " + $StartTime.ToString("yyyy-MM-dd HH:mm:ss"),
-        "  Thoi gian ket thuc : " + $endTime.ToString("yyyy-MM-dd HH:mm:ss"),
-        "  Thoi gian thuc hien: " + $durText,
-        "",
-        "  May tinh           : " + $env:COMPUTERNAME,
-        "  He dieu hanh       : " + $osCaption,
-        "  Che do xoa         : " + $CleanMode,
-        "",
-        "  [+] TAP NGUOI DUNG DA XU LY",
+        "================================================================"
+        "     BAO CAO XOA LICH SU - USB WINDOWS HISTORY CLEANER v2.0"
+        "================================================================"
+        ""
+        "  [+] THONG TIN PHIEN CHAY"
+        "  --------------------------------------------------------------"
+        "  Thoi gian bat dau  : $($StartTime.ToString('yyyy-MM-dd HH:mm:ss'))"
+        "  Thoi gian ket thuc : $($endTime.ToString('yyyy-MM-dd HH:mm:ss'))"
+        "  Thoi gian thuc hien: $durText"
+        ""
+        "  May tinh           : $env:COMPUTERNAME"
+        "  He dieu hanh       : $osCaption"
+        "  Che do xoa         : $CleanMode"
+        ""
+        "  [+] TAP NGUOI DUNG DA XU LY"
         "  --------------------------------------------------------------"
     )
 
     foreach ($user in $SelectedUsers) {
-        $lines += "  - " + $user
+        $lines += "  - $user"
     }
 
     $lines += ""
     $lines += "  [+] DANH SACH MODULE DA THUC HIEN"
     $lines += "  --------------------------------------------------------------"
     foreach ($mod in $ModulesRun) {
-        $lines += "  [x] " + $mod
+        $lines += "  [x] $mod"
     }
 
     $lines += ""
     $lines += "  [+] THONG KE CHI TIET"
     $lines += "  --------------------------------------------------------------"
-    $lines += "  File da xoa          : " + $Stats.FilesDeleted
-    $lines += "  Registry key da xoa  : " + $Stats.RegistryKeysDeleted
-    $lines += "  Event logs da xoa    : " + $Stats.EventLogsCleared
-    $lines += "  Loi gap phai         : " + $Stats.Errors
+    $lines += "  File da xoa          : $($Stats.FilesDeleted)"
+    $lines += "  Registry key da xoa  : $($Stats.RegistryKeysDeleted)"
+    $lines += "  Event logs da xoa    : $($Stats.EventLogsCleared)"
+    $lines += "  Loi gap phai         : $($Stats.Errors)"
     $lines += ""
     $lines += "================================================================"
-    $lines += "  KET QUA TONG THE: " + $resultText
+    $lines += "  KET QUA TONG THE: $resultText"
     $lines += "================================================================"
     $lines += ""
 
@@ -91,15 +91,15 @@ function Generate-CleanReport {
         $lines | Out-File -FilePath $reportFileTxt -Encoding utf8 -Force
     } catch {
         # Fallback for old PS versions
-        [System.IO.File]::WriteAllLines($reportFileTxt, $lines)
+        [System.IO.File]::WriteAllLines($reportFileTxt, [string[]]$lines)
     }
 
     # ============================================================
     # 2. TAO FILE HTML PREVIEWS (Mo tren Browser)
     # ============================================================
 
-    $userItemsHtml = ($SelectedUsers | ForEach-Object { "<li>$($_)</li>" }) -join "`n"
-    $modItemsHtml = ($ModulesRun | ForEach-Object { "<li class='mod-item'><span class='check'>✔</span> $($_)</li>" }) -join "`n"
+    $userItemsHtml = ($SelectedUsers | ForEach-Object { "<li>$_</li>" }) -join "`n"
+    $modItemsHtml = ($ModulesRun | ForEach-Object { "<li class='mod-item'><span class='check'>✔</span> $_</li>" }) -join "`n"
 
     $errColorStyle = "#10b981"
     if ($Stats.Errors -gt 0) {

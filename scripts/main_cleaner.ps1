@@ -25,18 +25,27 @@ $utilsPath = Join-Path $PSScriptRoot "utils"
 $modulesPath = Join-Path $PSScriptRoot "modules"
 
 # Load theo thu tu dependency
-. "$utilsPath\logger.ps1"
-. "$utilsPath\report.ps1"
-. "$modulesPath\mod_detect_users.ps1"
-. "$modulesPath\mod_event_logs.ps1"
-. "$modulesPath\mod_usb_history.ps1"
-. "$modulesPath\mod_file_history.ps1"
-. "$modulesPath\mod_shellbags.ps1"
-. "$modulesPath\mod_wifi_history.ps1"
-. "$modulesPath\mod_browser_history.ps1"
-. "$modulesPath\mod_app_history.ps1"
-. "$modulesPath\mod_advanced_clean.ps1"
-. "$modulesPath\mod_system_cache.ps1"
+$ErrorActionPreference = "Stop"
+try {
+    . "$utilsPath\logger.ps1"
+    . "$utilsPath\report.ps1"
+    . "$modulesPath\mod_detect_users.ps1"
+    . "$modulesPath\mod_event_logs.ps1"
+    . "$modulesPath\mod_usb_history.ps1"
+    . "$modulesPath\mod_file_history.ps1"
+    . "$modulesPath\mod_shellbags.ps1"
+    . "$modulesPath\mod_wifi_history.ps1"
+    . "$modulesPath\mod_browser_history.ps1"
+    . "$modulesPath\mod_app_history.ps1"
+    . "$modulesPath\mod_advanced_clean.ps1"
+    . "$modulesPath\mod_system_cache.ps1"
+} catch {
+    Write-Host "  [-] LOI LOAD SCRIPTS: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  [-] Chi tiet: $_" -ForegroundColor Red
+    Read-Host "  Nhan Enter de dung lai"
+    exit 1
+}
+$ErrorActionPreference = "SilentlyContinue"
 
 # ============================================================
 # Kiem tra quyen Administrator
