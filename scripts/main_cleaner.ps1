@@ -426,8 +426,14 @@ function Test-PostCleanVerification {
 
     $cleanCount = 0
     foreach ($check in $checks) {
-        $icon = if ($check.Clean) { "[✓]"; $cleanCount++ } else { "[!]" }
-        $color = if ($check.Clean) { "Green" } else { "Yellow" }
+        if ($check.Clean) {
+            $icon = "[OK]"
+            $cleanCount++
+            $color = "Green"
+        } else {
+            $icon = "[!]"
+            $color = "Yellow"
+        }
         Write-Host "  $icon $($check.Name.PadRight(20)) : $($check.Status)" -ForegroundColor $color
     }
 
