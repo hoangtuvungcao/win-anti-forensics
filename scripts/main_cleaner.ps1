@@ -643,15 +643,15 @@ if ($global:IsDryRun) {
     $modeReportLabel += " [DRY-RUN]"
 }
 
-$userNamesList = $selectedUsers | ForEach-Object { $_.Name }
-
-$reportPath = Generate-CleanReport `
-    -BasePath $global:USBRoot `
-    -Stats $stats `
-    -ModulesRun $completedModules `
-    -SelectedUsers $userNamesList `
-    -CleanMode $modeReportLabel `
-    -StartTime $global:StartTime
+$reportParams = @{
+    BasePath      = $global:USBRoot
+    Stats         = $stats
+    ModulesRun    = $completedModules
+    SelectedUsers = $userNamesList
+    CleanMode     = $modeReportLabel
+    StartTime     = $global:StartTime
+}
+$reportPath = Generate-CleanReport @reportParams
 
 Show-CleanSummary -Stats $stats -ReportPath $reportPath
 

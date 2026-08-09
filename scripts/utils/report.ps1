@@ -1,7 +1,7 @@
 # ============================================================
 # USB Windows History Cleaner - Report Utility
 # Tao bao cao TXT & HTML tong ket sau khi xoa
-# Compatible with PS 3.0, 4.0, 5.1, 7.x
+# Compatible with PS 2.0, 3.0, 4.0, 5.1, 7.x
 # ============================================================
 
 function Generate-CleanReport {
@@ -41,35 +41,39 @@ function Generate-CleanReport {
     }
 
     # ============================================================
-    # 1. TAO FILE TXT (CRLF line endings choice for Windows Notepad)
+    # 1. TAO FILE TXT (Windows Notepad compatible)
     # ============================================================
 
-    $lines = @()
-    $lines += "================================================================"
-    $lines += "     BAO CAO XOA LICH SU - USB WINDOWS HISTORY CLEANER v2.0"
-    $lines += "================================================================"
-    $lines += ""
-    $lines += "  [+] THONG TIN PHIEN CHAY"
-    $lines += "  --------------------------------------------------------------"
-    $lines += "  Thoi gian bat dau  : " + $StartTime.ToString("yyyy-MM-dd HH:mm:ss")
-    $lines += "  Thoi gian ket thuc : " + $endTime.ToString("yyyy-MM-dd HH:mm:ss")
-    $lines += "  Thoi gian thuc hien: " + $durText
-    $lines += ""
-    $lines += "  May tinh           : " + $env:COMPUTERNAME
-    $lines += "  He dieu hanh       : " + $osCaption
-    $lines += "  Che do xoa         : " + $CleanMode
-    $lines += ""
-    $lines += "  [+] TAP NGUOI DUNG DA XU LY"
-    $lines += "  --------------------------------------------------------------"
+    $lines = @(
+        "================================================================",
+        "     BAO CAO XOA LICH SU - USB WINDOWS HISTORY CLEANER v2.0",
+        "================================================================",
+        "",
+        "  [+] THONG TIN PHIEN CHAY",
+        "  --------------------------------------------------------------",
+        "  Thoi gian bat dau  : " + $StartTime.ToString("yyyy-MM-dd HH:mm:ss"),
+        "  Thoi gian ket thuc : " + $endTime.ToString("yyyy-MM-dd HH:mm:ss"),
+        "  Thoi gian thuc hien: " + $durText,
+        "",
+        "  May tinh           : " + $env:COMPUTERNAME,
+        "  He dieu hanh       : " + $osCaption,
+        "  Che do xoa         : " + $CleanMode,
+        "",
+        "  [+] TAP NGUOI DUNG DA XU LY",
+        "  --------------------------------------------------------------"
+    )
+
     foreach ($user in $SelectedUsers) {
         $lines += "  - " + $user
     }
+
     $lines += ""
     $lines += "  [+] DANH SACH MODULE DA THUC HIEN"
     $lines += "  --------------------------------------------------------------"
     foreach ($mod in $ModulesRun) {
         $lines += "  [x] " + $mod
     }
+
     $lines += ""
     $lines += "  [+] THONG KE CHI TIET"
     $lines += "  --------------------------------------------------------------"
@@ -83,15 +87,24 @@ function Generate-CleanReport {
     $lines += "================================================================"
     $lines += ""
 
-    $txtContent = $lines -join "`r`n"
-    [System.IO.File]::WriteAllText($reportFileTxt, $txtContent, [System.Text.Encoding]::UTF8)
+    try {
+        $lines | Out-File -FilePath $reportFileTxt -Encoding utf8 -Force
+    } catch {
+        # Fallback for old PS versions
+        [System.IO.File]::WriteAllLines($reportFileTxt, $lines)
+    }
 
     # ============================================================
-    # 2. TAO FILE HTML PREVIEWS (Mo duoc tren Browser va dep mat)
+    # 2. TAO FILE HTML PREVIEWS (Mo tren Browser)
     # ============================================================
 
     $userItemsHtml = ($SelectedUsers | ForEach-Object { "<li>$($_)</li>" }) -join "`n"
     $modItemsHtml = ($ModulesRun | ForEach-Object { "<li class='mod-item'><span class='check'>✔</span> $($_)</li>" }) -join "`n"
+
+    $errColorStyle = "#10b981"
+    if ($Stats.Errors -gt 0) {
+        $errColorStyle = "#ef4444"
+    }
 
     $htmlContent = @"
 <!DOCTYPE html>
@@ -133,7 +146,7 @@ function Generate-CleanReport {
             <div class="card"><div class="label">File Da Xoa</div><div class="num">$($Stats.FilesDeleted)</div></div>
             <div class="card"><div class="label">Registry Keys</div><div class="num">$($Stats.RegistryKeysDeleted)</div></div>
             <div class="card"><div class="label">Event Logs</div><div class="num">$($Stats.EventLogsCleared)</div></div>
-            <div class="card"><div class="label">Loi Gap Phai</div><div class="num" style="color: $(if($Stats.Errors -gt 0){'#ef4444'}else{'#10b981'})">$($Stats.Errors)</div></div>
+            <div class="card"><div class="label">Loi Gap Phai</div><div class="num" style="color: $errColorStyle">$($Stats.Errors)</div></div>
         </div>
 
         <div class="section">
@@ -162,7 +175,11 @@ function Generate-CleanReport {
 </html>
 "@
 
-    [System.IO.File]::WriteAllText($reportFileHtml, $htmlContent, [System.Text.Encoding]::UTF8)
+    try {
+        $htmlContent | Out-File -FilePath $reportFileHtml -Encoding utf8 -Force
+    } catch {
+        [System.IO.File]::WriteAllText($reportFileHtml, $htmlContent)
+    }
 
     return $reportFileTxt
 }
@@ -190,10 +207,10 @@ function Show-CleanSummary {
 
     Write-Host ""
     if ($ReportPath) {
-        Write-Host "  Bao cao TXT : $ReportPath" -ForegroundColor DarkGray
+        Write-Host "  Bao cao TXT : $ReportPath" -ForegroundColor White
         $htmlPath = $ReportPath -replace "\.txt$", ".html"
         if (Test-Path $htmlPath) {
-            Write-Host "  Bao cao HTML: $htmlPath (Mo tren trinh duyet)" -ForegroundColor Cyan
+            Write-Host "  Bao cao HTML: $htmlPath" -ForegroundColor Cyan
         }
     }
     Write-Host ""
