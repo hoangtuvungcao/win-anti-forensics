@@ -13,7 +13,7 @@ function Clear-FileHistory {
         [bool]$DryRun = $false
     )
 
-    Write-Log "XOA LICH SU TRUY CAP FILE & THU MUC" -Level "HEADER"
+    Write-Log "XOA LICH SU TRUY CAP FILE VA THU MUC" -Level "HEADER"
 
     $totalDeleted = 0
     $errors = 0

@@ -229,7 +229,7 @@ function Clear-USBHistory {
     # ============================================================
 
     Write-LogSeparator
-    Write-Log "Buoc 6: Xoa Volume Info Cache & SCSI..." -Level "INFO"
+    Write-Log "Buoc 6: Xoa Volume Info Cache va SCSI..." -Level "INFO"
 
     $volumeCachePaths = @(
         "HKLM:\SOFTWARE\Microsoft\Windows Search\VolumeInfoCache",

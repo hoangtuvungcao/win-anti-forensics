@@ -13,7 +13,7 @@ function Clear-AppHistory {
         [bool]$DryRun = $false
     )
 
-    Write-Log "XOA LICH SU UNG DUNG & WINDOWS TIMELINE" -Level "HEADER"
+    Write-Log "XOA LICH SU UNG DUNG VA WINDOWS TIMELINE" -Level "HEADER"
 
     $totalDeleted = 0
     $errors = 0

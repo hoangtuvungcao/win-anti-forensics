@@ -141,7 +141,7 @@ function Clear-AdvancedHistory {
     # ============================================================
 
     Write-LogSeparator
-    Write-Log "Buoc 5: Xoa Diagnostic & Telemetry Data..." -Level "INFO"
+    Write-Log "Buoc 5: Xoa Diagnostic va Telemetry Data..." -Level "INFO"
 
     $diagPaths = @(
         "$env:ProgramData\Microsoft\Diagnosis\ETLLogs",

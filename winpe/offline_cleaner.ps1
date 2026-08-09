@@ -2,6 +2,7 @@
 # USB Windows History Cleaner - Offline Cleaner (WinPE)
 # Script PowerShell chay trong moi truong WinPE
 # Xoa triet de tat ca lich su khi Windows khong chay
+# Compatible with PS 3.0, 4.0, 5.1, 7.x
 # ============================================================
 
 param(
@@ -9,7 +10,8 @@ param(
     [string]$WinDrive
 )
 
-$ErrorActionPreference = "SilentlyContinue"
+$ConfirmPreference = 'None'
+$ErrorActionPreference = 'SilentlyContinue'
 
 # ============================================================
 # Banner
@@ -18,10 +20,10 @@ $ErrorActionPreference = "SilentlyContinue"
 function Show-OfflineBanner {
     Clear-Host
     Write-Host ""
-    Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "  ║   USB HISTORY CLEANER - OFFLINE MODE (WinPE)     ║" -ForegroundColor Cyan
-    Write-Host "  ║   Xoa triet de khi Windows khong hoat dong       ║" -ForegroundColor Cyan
-    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "  ==================================================" -ForegroundColor Cyan
+    Write-Host "     USB HISTORY CLEANER - OFFLINE MODE (WinPE)     " -ForegroundColor Cyan
+    Write-Host "     Xoa triet de khi Windows khong hoat dong       " -ForegroundColor Cyan
+    Write-Host "  ==================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Windows Drive: $WinDrive" -ForegroundColor White
     Write-Host ""
@@ -109,7 +111,7 @@ if (Test-Path $prefetchPath) {
 # 3. Xoa Setup logs
 # ============================================================
 
-Write-Host "  [3/10] Xoa Setup & INF logs..." -ForegroundColor Cyan
+Write-Host "  [3/10] Xoa Setup va INF logs..." -ForegroundColor Cyan
 
 $setupLogs = @(
     "$WinDrive\Windows\INF\setupapi.dev.log",
@@ -203,7 +205,7 @@ foreach ($werPath in $werPaths) {
 Write-Host "    Xoa WER reports" -ForegroundColor Green
 
 # ============================================================
-# 8. Xoa Diagnostic & Telemetry
+# 8. Xoa Diagnostic va Telemetry
 # ============================================================
 
 Write-Host "  [8/10] Xoa Diagnostic data..." -ForegroundColor Cyan
@@ -242,7 +244,7 @@ foreach ($user in $users) {
         if (Test-Path $recentPath) {
             $items = Get-ChildItem -Path $recentPath -File
             $count = ($items | Measure-Object).Count
-            Remove-Item -Path "$recentPath\*" -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path "$recentPath\*" -Recurse -Force -ErrorAction SilentlyContinue
             $totalDeleted += $count
         }
     }
@@ -275,8 +277,7 @@ foreach ($user in $users) {
         $totalDeleted++
     }
 
-    # Browser data
-    # Chrome
+    # Browser data - Chrome
     $chromeData = "$profilePath\AppData\Local\Google\Chrome\User Data"
     if (Test-Path $chromeData) {
         $chromeProfiles = @("Default") + (Get-ChildItem -Path $chromeData -Directory -Filter "Profile *" | ForEach-Object { $_.Name })
@@ -286,7 +287,7 @@ foreach ($user in $users) {
                 @("History", "Cookies", "Web Data", "Visited Links", "Top Sites",
                   "Shortcuts", "Favicons", "Last Session", "Last Tabs", "Current Session", "Current Tabs") | ForEach-Object {
                     $f = "$cpPath\$_"
-                    if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue; $totalDeleted++ }
+                    if (Test-Path $f) { Remove-Item $f -Recurse -Force -ErrorAction SilentlyContinue; $totalDeleted++ }
                 }
                 @("Cache", "Code Cache", "GPUCache") | ForEach-Object {
                     $d = "$cpPath\$_"
@@ -306,7 +307,7 @@ foreach ($user in $users) {
                 @("History", "Cookies", "Web Data", "Visited Links", "Top Sites",
                   "Shortcuts", "Favicons", "Last Session", "Last Tabs", "Current Session", "Current Tabs") | ForEach-Object {
                     $f = "$epPath\$_"
-                    if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue; $totalDeleted++ }
+                    if (Test-Path $f) { Remove-Item $f -Recurse -Force -ErrorAction SilentlyContinue; $totalDeleted++ }
                 }
                 @("Cache", "Code Cache", "GPUCache") | ForEach-Object {
                     $d = "$epPath\$_"
@@ -319,9 +320,10 @@ foreach ($user in $users) {
     # Firefox
     $ffData = "$profilePath\AppData\Roaming\Mozilla\Firefox\Profiles"
     if (Test-Path $ffData) {
-        Get-ChildItem -Path $ffData -Directory | ForEach-Object {
-            @("places.sqlite", "cookies.sqlite", "formhistory.sqlite", "downloads.sqlite") | ForEach-Object -Begin { $ffProfile = $_.FullName } -Process {
-                $f = "$ffProfile\$_"
+        $ffProfiles = Get-ChildItem -Path $ffData -Directory -ErrorAction SilentlyContinue
+        foreach ($ffp in $ffProfiles) {
+            @("places.sqlite", "cookies.sqlite", "formhistory.sqlite", "downloads.sqlite") | ForEach-Object {
+                $f = "$($ffp.FullName)\$_"
                 if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue; $totalDeleted++ }
             }
         }
@@ -364,9 +366,8 @@ if (Test-Path $systemHivePath) {
 
         # Xoa USBSTOR
         $usbstorPath = "HKLM\OFFLINE_SYSTEM\ControlSet001\Enum\USBSTOR"
-        reg query "$usbstorPath" >$null 2>&1
+        reg query "$usbstorPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            # Lay danh sach va xoa tung key
             $subkeys = reg query "$usbstorPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
                 $innerKeys = reg query "$key" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
@@ -380,7 +381,7 @@ if (Test-Path $systemHivePath) {
 
         # Xoa USB Enum
         $usbEnumPath = "HKLM\OFFLINE_SYSTEM\ControlSet001\Enum\USB"
-        reg query "$usbEnumPath" >$null 2>&1
+        reg query "$usbEnumPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $subkeys = reg query "$usbEnumPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
@@ -395,7 +396,7 @@ if (Test-Path $systemHivePath) {
 
         # Xoa BAM
         $bamPath = "HKLM\OFFLINE_SYSTEM\ControlSet001\Services\bam\State\UserSettings"
-        reg query "$bamPath" >$null 2>&1
+        reg query "$bamPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $subkeys = reg query "$bamPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
@@ -404,10 +405,6 @@ if (Test-Path $systemHivePath) {
             }
             Write-Host "    Xoa BAM entries" -ForegroundColor Green
         }
-
-        # Xoa Network List
-        $networkPath = "HKLM\OFFLINE_SYSTEM\ControlSet001\Services\Tcpip\Parameters\Interfaces"
-        # This is in SOFTWARE hive, will handle separately
 
         [gc]::Collect()
         Start-Sleep -Seconds 1
@@ -427,7 +424,7 @@ if (Test-Path $softwareHivePath) {
 
         # Xoa Network List Profiles
         $netListPath = "HKLM\OFFLINE_SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles"
-        reg query "$netListPath" >$null 2>&1
+        reg query "$netListPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $subkeys = reg query "$netListPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
@@ -439,7 +436,7 @@ if (Test-Path $softwareHivePath) {
 
         # Xoa Network Signatures
         $netSigPath = "HKLM\OFFLINE_SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures"
-        reg query "$netSigPath" >$null 2>&1
+        reg query "$netSigPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $subkeys = reg query "$netSigPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
@@ -454,7 +451,7 @@ if (Test-Path $softwareHivePath) {
 
         # Xoa Portable Devices
         $portDevPath = "HKLM\OFFLINE_SOFTWARE\Microsoft\Windows Portable Devices\Devices"
-        reg query "$portDevPath" >$null 2>&1
+        reg query "$portDevPath" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $subkeys = reg query "$portDevPath" 2>$null | Where-Object { $_ -match "HKEY_LOCAL_MACHINE" }
             foreach ($key in $subkeys) {
@@ -484,7 +481,7 @@ foreach ($user in $users) {
 
             # Xoa UserAssist
             $uaPath = "HKU\$hiveName\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist"
-            reg query "$uaPath" >$null 2>&1
+            reg query "$uaPath" 2>$null | Out-Null
             if ($LASTEXITCODE -eq 0) {
                 $guids = reg query "$uaPath" 2>$null | Where-Object { $_ -match "HKU" }
                 foreach ($guid in $guids) {
@@ -545,15 +542,20 @@ foreach ($user in $users) {
 # Tong ket
 # ============================================================
 
+$errColor = "White"
+if ($errors -gt 0) {
+    $errColor = "Red"
+}
+
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "  ║              HOAN TAT XOA OFFLINE!               ║" -ForegroundColor Green
-Write-Host "  ╠══════════════════════════════════════════════════╣" -ForegroundColor Green
-Write-Host "  ║  Tong so items da xoa: $($totalDeleted.ToString().PadLeft(6))                    ║" -ForegroundColor White
-Write-Host "  ║  Loi gap phai        : $($errors.ToString().PadLeft(6))                    ║" -ForegroundColor $(if ($errors -gt 0) {"Red"} else {"White"})
-Write-Host "  ╠══════════════════════════════════════════════════╣" -ForegroundColor Green
-Write-Host "  ║  Hay khoi dong lai may tinh de ap dung.          ║" -ForegroundColor Yellow
-Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "  ==================================================" -ForegroundColor Green
+Write-Host "              HOAN TAT XOA OFFLINE!                 " -ForegroundColor Green
+Write-Host "  ==================================================" -ForegroundColor Green
+Write-Host "    Tong so items da xoa: $($totalDeleted.ToString().PadLeft(6))" -ForegroundColor White
+Write-Host "    Loi gap phai        : $($errors.ToString().PadLeft(6))" -ForegroundColor $errColor
+Write-Host "  ==================================================" -ForegroundColor Green
+Write-Host "    Hay khoi dong lai may tinh de ap dung." -ForegroundColor Yellow
+Write-Host "  ==================================================" -ForegroundColor Green
 Write-Host ""
 
 Read-Host "  Nhan Enter de thoat"

@@ -13,7 +13,7 @@ function Clear-WiFiHistory {
         [bool]$DryRun = $false
     )
 
-    Write-Log "XOA LICH SU WI-FI & MANG" -Level "HEADER"
+    Write-Log "XOA LICH SU WI-FI VA MANG" -Level "HEADER"
 
     $totalDeleted = 0
     $errors = 0
