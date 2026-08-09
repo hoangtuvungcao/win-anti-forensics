@@ -99,7 +99,7 @@ function Generate-CleanReport {
     # ============================================================
 
     $userItemsHtml = ($SelectedUsers | ForEach-Object { "<li>$_</li>" }) -join "`n"
-    $modItemsHtml = ($ModulesRun | ForEach-Object { "<li class='mod-item'><span class='check'>✔</span> $_</li>" }) -join "`n"
+    $modItemsHtml = ($ModulesRun | ForEach-Object { "<li class='mod-item'><span class='check'>&#10004;</span> $_</li>" }) -join "`n"
 
     $errColorStyle = "#10b981"
     if ($Stats.Errors -gt 0) {
