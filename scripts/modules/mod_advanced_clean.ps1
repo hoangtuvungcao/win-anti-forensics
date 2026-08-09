@@ -251,12 +251,11 @@ function Clear-AdvancedHistory {
     # ============================================================
 
     Write-LogSeparator
-    Write-Host ""
-    Write-Host "  ╔════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "  ║  TUY CHON: Ghi de vung trong (Wipe Free   ║" -ForegroundColor Yellow
-    Write-Host "  ║  Space) de chong phuc hoi du lieu.         ║" -ForegroundColor Yellow
-    Write-Host "  ║  CANH BAO: Rat cham (co the mat hang gio)  ║" -ForegroundColor Yellow
-    Write-Host "  ╚════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Yellow
+    Write-Host "  |  TUY CHON: Ghi de vung trong (Wipe Free    |" -ForegroundColor Yellow
+    Write-Host "  |  Space) de chong phuc hoi du lieu.         |" -ForegroundColor Yellow
+    Write-Host "  |  CANH BAO: Rat cham (co the mat hang gio)  |" -ForegroundColor Yellow
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Yellow
     Write-Host ""
 
     $wipeChoice = Read-Host "  Ban co muon Wipe Free Space? (Y/N, mac dinh: N)"

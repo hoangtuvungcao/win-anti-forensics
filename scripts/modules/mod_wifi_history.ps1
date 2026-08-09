@@ -22,12 +22,11 @@ function Clear-WiFiHistory {
     # Canh bao truoc khi xoa
     # ============================================================
 
-    Write-Host ""
-    Write-Host "  ╔════════════════════════════════════════════╗" -ForegroundColor Red
-    Write-Host "  ║  CANH BAO: XOA WIFI SE MAT TAT CA MAT     ║" -ForegroundColor Red
-    Write-Host "  ║  KHAU WIFI DA LUU! Ban se phai nhap lai   ║" -ForegroundColor Red
-    Write-Host "  ║  mat khau WiFi sau khi xoa.               ║" -ForegroundColor Red
-    Write-Host "  ╚════════════════════════════════════════════╝" -ForegroundColor Red
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Red
+    Write-Host "  |  CANH BAO: XOA WIFI SE MAT TAT CA MAT      |" -ForegroundColor Red
+    Write-Host "  |  KHAU WIFI DA LUU! Ban se phai nhap lai    |" -ForegroundColor Red
+    Write-Host "  |  mat khau WiFi sau khi xoa.                |" -ForegroundColor Red
+    Write-Host "  +--------------------------------------------+" -ForegroundColor Red
     Write-Host ""
 
     # Backup WiFi profiles truoc khi xoa
