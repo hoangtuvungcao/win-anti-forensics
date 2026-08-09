@@ -364,7 +364,7 @@ function Clear-ChromiumBrowser {
                     Write-Log "[DRY-RUN] Se xoa: $filePath" -Level "DETAIL"
                 } else {
                     try {
-                        Remove-Item -Path $filePath -Force -ErrorAction Stop
+                        Remove-Item -Path $filePath -Recurse -Force -ErrorAction SilentlyContinue
                         $deleted++
                     } catch { }
                 }
@@ -492,7 +492,7 @@ function Clear-FirefoxBrowser {
                     Write-Log "[DRY-RUN] Se xoa: $filePath" -Level "DETAIL"
                 } else {
                     try {
-                        Remove-Item -Path $filePath -Force -ErrorAction Stop
+                        Remove-Item -Path $filePath -Recurse -Force -ErrorAction SilentlyContinue
                         $deleted++
                     } catch { }
                 }

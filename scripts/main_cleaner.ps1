@@ -9,6 +9,9 @@ param(
     [switch]$Silent         # Che do im lang (it output)
 )
 
+$ConfirmPreference = 'None'
+$ErrorActionPreference = 'SilentlyContinue'
+
 # Xac dinh duong dan goc cua USB
 $global:USBRoot = Split-Path -Path $PSScriptRoot -Parent
 $global:IsDryRun = $DryRun.IsPresent

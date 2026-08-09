@@ -80,7 +80,7 @@ function Clear-FileHistory {
                 try {
                     $items = Get-ChildItem -Path $recentPath -File -ErrorAction SilentlyContinue
                     $count = ($items | Measure-Object).Count
-                    Remove-Item -Path "$recentPath\*" -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path "$recentPath\*" -Recurse -Force -ErrorAction SilentlyContinue
                     Write-Log "Xoa $count recent files: $(Split-Path $recentPath -Leaf)" -Level "SUCCESS"
                     $totalDeleted += $count
                 } catch {
