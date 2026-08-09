@@ -1,6 +1,6 @@
 # ============================================================
 # USB Windows History Cleaner v2.0 - Main Controller
-# Nang cao: DRY_RUN mode, auto-detect, thong minh hon
+# Compatible with PowerShell 3.0, 4.0, 5.1, 7.x
 # ============================================================
 
 param(
@@ -49,11 +49,6 @@ function Test-AdminPrivilege {
 # ============================================================
 
 function Test-SystemReadiness {
-    <#
-    .SYNOPSIS
-    Kiem tra he thong truoc khi chay - phat hien van de tiem an
-    #>
-
     $issues = @()
 
     # Kiem tra OS
@@ -61,13 +56,13 @@ function Test-SystemReadiness {
     if ($os) {
         $version = [System.Version]$os.Version
         if ($version.Major -lt 10) {
-            $issues += "OS cu ($($os.Caption)) - mot so tinh nang co the khong hoat dong"
+            $issues += "OS cu - mot so tinh nang co the khong hoat dong"
         }
     }
 
     # Kiem tra PowerShell version
-    if ($PSVersionTable.PSVersion.Major -lt 5) {
-        $issues += "PowerShell version $($PSVersionTable.PSVersion) - can 5.1+"
+    if ($PSVersionTable.PSVersion.Major -lt 3) {
+        $issues += "PowerShell version cu - can 3.0+"
     }
 
     # Kiem tra dung luong USB de luu log
@@ -94,14 +89,20 @@ function Test-SystemReadiness {
 
 function Get-SystemSummary {
     $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-    $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
     $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null }
+
+    $osName = "Unknown"
+    $osBuild = "Unknown"
+    if ($os) {
+        $osName = $os.Caption
+        $osBuild = $os.BuildNumber
+    }
 
     return @{
         ComputerName = $env:COMPUTERNAME
         UserName     = $env:USERNAME
-        OS           = if ($os) { $os.Caption } else { "Unknown" }
-        OSBuild      = if ($os) { $os.BuildNumber } else { "Unknown" }
+        OS           = $osName
+        OSBuild      = $osBuild
         IsAdmin      = Test-AdminPrivilege
         USBPath      = $global:USBRoot
         DriveCount   = $drives.Count
@@ -116,42 +117,34 @@ function Get-SystemSummary {
 function Show-Banner {
     Clear-Host
 
-    $dryRunBanner = ""
+    $bannerColor = "Cyan"
     if ($global:IsDryRun) {
-        $dryRunBanner = @"
-
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  ⚠  CHE DO TEST (DRY-RUN) - KHONG XOA THAT                  ║
-    ║     Chi mo phong va log nhung gi se xoa                      ║
-    ╚══════════════════════════════════════════════════════════════╝
-"@
+        $bannerColor = "Yellow"
     }
 
-    $banner = @"
+    Write-Host ""
+    Write-Host "    ==========================================================" -ForegroundColor $bannerColor
+    Write-Host "             USB WINDOWS HISTORY CLEANER v2.0                 " -ForegroundColor $bannerColor
+    Write-Host "             Xoa sach lich su hoat dong may tinh              " -ForegroundColor $bannerColor
+    Write-Host "    ==========================================================" -ForegroundColor $bannerColor
 
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                                                              ║
-    ║     ██╗   ██╗███████╗██████╗      ██████╗██╗     ███╗   ██╗ ║
-    ║     ██║   ██║██╔════╝██╔══██╗    ██╔════╝██║     ████╗  ██║ ║
-    ║     ██║   ██║███████╗██████╔╝    ██║     ██║     ██╔██╗ ██║ ║
-    ║     ██║   ██║╚════██║██╔══██╗    ██║     ██║     ██║╚██╗██║ ║
-    ║     ╚██████╔╝███████║██████╔╝    ╚██████╗███████╗██║ ╚████║ ║
-    ║      ╚═════╝ ╚══════╝╚═════╝     ╚═════╝╚══════╝╚═╝  ╚═══╝ ║
-    ║                                                              ║
-    ║         USB WINDOWS HISTORY CLEANER v2.0                     ║
-    ║         Xoa sach lich su hoat dong may tinh                  ║
-    ║                                                              ║
-    ╚══════════════════════════════════════════════════════════════╝
-$dryRunBanner
-"@
-    Write-Host $banner -ForegroundColor $(if ($global:IsDryRun) {"Yellow"} else {"Cyan"})
+    if ($global:IsDryRun) {
+        Write-Host "    [!] CHE DO TEST (DRY-RUN) - KHONG XOA THAT               " -ForegroundColor Yellow
+        Write-Host "    ==========================================================" -ForegroundColor Yellow
+    }
 
-    # System info
     $info = Get-SystemSummary
+    $adminText = "KHONG"
+    $adminColor = "Red"
+    if ($info.IsAdmin) {
+        $adminText = "CO"
+        $adminColor = "Green"
+    }
+
     Write-Host "  May tinh    : $($info.ComputerName)" -ForegroundColor DarkGray
     Write-Host "  User        : $($info.UserName)" -ForegroundColor DarkGray
     Write-Host "  OS          : $($info.OS) (Build $($info.OSBuild))" -ForegroundColor DarkGray
-    Write-Host "  Quyen Admin : $(if ($info.IsAdmin) { 'CO' } else { 'KHONG' })" -ForegroundColor $(if ($info.IsAdmin) {"Green"} else {"Red"})
+    Write-Host "  Quyen Admin : $adminText" -ForegroundColor $adminColor
     Write-Host "  USB Path    : $($info.USBPath)" -ForegroundColor DarkGray
 
     if ($global:IsDryRun) {
@@ -162,7 +155,7 @@ $dryRunBanner
     # Kiem tra system readiness
     $issues = Test-SystemReadiness
     if ($issues.Count -gt 0) {
-        Write-Host "  ⚠ Canh bao he thong:" -ForegroundColor Yellow
+        Write-Host "  Canh bao he thong:" -ForegroundColor Yellow
         foreach ($issue in $issues) {
             Write-Host "    - $issue" -ForegroundColor Yellow
         }
@@ -192,7 +185,8 @@ function Show-PreCleanSummary {
         # Dem browsers
         $browsers = Find-InstalledBrowsers -UserProfilePath $profilePath
         if ($browsers.Count -gt 0) {
-            Write-Host "    Trinh duyet: $($browsers.Count) - $($browsers.Name -join ', ')" -ForegroundColor DarkGray
+            $browserList = ($browsers | ForEach-Object { $_.Name }) -join ", "
+            Write-Host "    Trinh duyet: $($browsers.Count) - $browserList" -ForegroundColor DarkGray
         }
 
         # Dem recent files
@@ -307,18 +301,25 @@ function Confirm-CleanAction {
     Write-Host ""
 
     if ($global:IsDryRun) {
-        Write-Host "  ╔════════════════════════════════════════════╗" -ForegroundColor Yellow
-        Write-Host "  ║  CHE DO TEST - Chi mo phong, khong xoa     ║" -ForegroundColor Yellow
-        Write-Host "  ╚════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host "  ============================================" -ForegroundColor Yellow
+        Write-Host "     CHE DO TEST - Chi mo phong, khong xoa    " -ForegroundColor Yellow
+        Write-Host "  ============================================" -ForegroundColor Yellow
     } else {
-        Write-Host "  ╔════════════════════════════════════════════╗" -ForegroundColor Red
-        Write-Host "  ║           XAC NHAN TRUOC KHI XOA           ║" -ForegroundColor Red
-        Write-Host "  ╚════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host "  ============================================" -ForegroundColor Red
+        Write-Host "              XAC NHAN TRUOC KHI XOA          " -ForegroundColor Red
+        Write-Host "  ============================================" -ForegroundColor Red
     }
 
+    $modeSuffix = ""
+    if ($global:IsDryRun) {
+        $modeSuffix = "(DRY-RUN)"
+    }
+
+    $userList = ($Users | ForEach-Object { $_.Name }) -join ", "
+
     Write-Host ""
-    Write-Host "  Che do    : $Mode $(if($global:IsDryRun){'(DRY-RUN)'})" -ForegroundColor White
-    Write-Host "  User      : $($Users.Name -join ', ')" -ForegroundColor White
+    Write-Host "  Che do    : $Mode $modeSuffix" -ForegroundColor White
+    Write-Host "  User      : $userList" -ForegroundColor White
     Write-Host "  Module    :" -ForegroundColor White
 
     foreach ($mod in $ModuleNames) {
@@ -357,10 +358,10 @@ function Invoke-CleanModule {
         "3" { Clear-FileHistory -Users $Users -DryRun $DryRun; return "File History" }
         "4" { Clear-ShellBags -Users $Users -DryRun $DryRun; return "Shell Bags" }
         "5" { Clear-WiFiHistory -DryRun $DryRun; return "WiFi History" }
-        "6" { Clear-BrowserHistory -Users $Users -DryRun $DryRun; return "Browser History (All)" }
-        "7" { Clear-AppHistory -Users $Users -DryRun $DryRun; return "App History & Timeline" }
+        "6" { Clear-BrowserHistory -Users $Users -DryRun $DryRun; return "Browser History" }
+        "7" { Clear-AppHistory -Users $Users -DryRun $DryRun; return "App History" }
         "8" { Clear-AdvancedHistory -Users $Users -DryRun $DryRun; return "Advanced Clean" }
-        "9" { Clear-SystemCache -Users $Users -DryRun $DryRun; return "System Cache & Deep Clean" }
+        "9" { Clear-SystemCache -Users $Users -DryRun $DryRun; return "System Cache" }
         default { Write-Log "Module khong hop le: $ModuleNumber" -Level "WARNING"; return $null }
     }
 }
@@ -370,11 +371,6 @@ function Invoke-CleanModule {
 # ============================================================
 
 function Test-PostCleanVerification {
-    <#
-    .SYNOPSIS
-    Kiem tra xem da xoa sach chua
-    #>
-
     Write-Log "KIEM TRA SAU KHI XOA" -Level "HEADER"
 
     $checks = @()
@@ -391,15 +387,24 @@ function Test-PostCleanVerification {
             }
         }
     } catch { }
-    $checks += @{ Name = "Event Logs"; Status = $(if ($remainingLogs -eq 0) {"SACH"} else {"Con $remainingLogs logs co du lieu"}); Clean = ($remainingLogs -eq 0) }
+    $logStatus = "Con $remainingLogs logs co du lieu"
+    $isLogClean = ($remainingLogs -eq 0)
+    if ($isLogClean) { $logStatus = "SACH" }
+    $checks += @{ Name = "Event Logs"; Status = $logStatus; Clean = $isLogClean }
 
     # Kiem tra Prefetch
     $prefetchCount = (Get-ChildItem -Path "$env:SystemRoot\Prefetch" -File -ErrorAction SilentlyContinue | Measure-Object).Count
-    $checks += @{ Name = "Prefetch"; Status = $(if ($prefetchCount -eq 0) {"SACH"} else {"Con $prefetchCount files"}); Clean = ($prefetchCount -eq 0) }
+    $prefetchStatus = "Con $prefetchCount files"
+    $isPrefetchClean = ($prefetchCount -eq 0)
+    if ($isPrefetchClean) { $prefetchStatus = "SACH" }
+    $checks += @{ Name = "Prefetch"; Status = $prefetchStatus; Clean = $isPrefetchClean }
 
     # Kiem tra Recent
     $recentCount = (Get-ChildItem -Path "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\Recent" -File -ErrorAction SilentlyContinue | Measure-Object).Count
-    $checks += @{ Name = "Recent Files"; Status = $(if ($recentCount -eq 0) {"SACH"} else {"Con $recentCount files"}); Clean = ($recentCount -eq 0) }
+    $recentStatus = "Con $recentCount files"
+    $isRecentClean = ($recentCount -eq 0)
+    if ($isRecentClean) { $recentStatus = "SACH" }
+    $checks += @{ Name = "Recent Files"; Status = $recentStatus; Clean = $isRecentClean }
 
     # Kiem tra USBSTOR
     $usbstorCount = 0
@@ -407,7 +412,10 @@ function Test-PostCleanVerification {
     if (Test-Path $usbstorPath) {
         $usbstorCount = (Get-ChildItem -Path $usbstorPath -Recurse -ErrorAction SilentlyContinue | Measure-Object).Count
     }
-    $checks += @{ Name = "USBSTOR Registry"; Status = $(if ($usbstorCount -le 1) {"SACH"} else {"Con $usbstorCount entries"}); Clean = ($usbstorCount -le 1) }
+    $usbStatus = "Con $usbstorCount entries"
+    $isUsbClean = ($usbstorCount -le 1)
+    if ($isUsbClean) { $usbStatus = "SACH" }
+    $checks += @{ Name = "USBSTOR Registry"; Status = $usbStatus; Clean = $isUsbClean }
 
     # Kiem tra WiFi
     $wifiCount = 0
@@ -415,13 +423,16 @@ function Test-PostCleanVerification {
     if ($wifiOutput) {
         $wifiCount = ($wifiOutput | Select-String "All User Profile|T.{1,5}t c.{1,3}" | Measure-Object).Count
     }
-    $checks += @{ Name = "WiFi Profiles"; Status = $(if ($wifiCount -eq 0) {"SACH"} else {"Con $wifiCount profiles"}); Clean = ($wifiCount -eq 0) }
+    $wifiStatus = "Con $wifiCount profiles"
+    $isWifiClean = ($wifiCount -eq 0)
+    if ($isWifiClean) { $wifiStatus = "SACH" }
+    $checks += @{ Name = "WiFi Profiles"; Status = $wifiStatus; Clean = $isWifiClean }
 
     # Hien thi ket qua
     Write-Host ""
-    Write-Host "  ╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "  ║         KET QUA KIEM TRA SAU XOA            ║" -ForegroundColor Cyan
-    Write-Host "  ╚════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "  ============================================" -ForegroundColor Cyan
+    Write-Host "         KET QUA KIEM TRA SAU XOA            " -ForegroundColor Cyan
+    Write-Host "  ============================================" -ForegroundColor Cyan
     Write-Host ""
 
     $cleanCount = 0
@@ -434,12 +445,23 @@ function Test-PostCleanVerification {
             $icon = "[!]"
             $color = "Yellow"
         }
-        Write-Host "  $icon $($check.Name.PadRight(20)) : $($check.Status)" -ForegroundColor $color
+        $namePadded = $check.Name.PadRight(20)
+        $statusText = $check.Status
+        Write-Host "  $icon $namePadded : $statusText" -ForegroundColor $color
     }
 
-    $score = [math]::Round(($cleanCount / $checks.Count) * 100)
+    $totalChecks = $checks.Count
+    $score = [math]::Round(($cleanCount / $totalChecks) * 100)
+
+    $scoreColor = "Red"
+    if ($score -ge 80) {
+        $scoreColor = "Green"
+    } elseif ($score -ge 50) {
+        $scoreColor = "Yellow"
+    }
+
     Write-Host ""
-    Write-Host "  Diem sach: $score% ($cleanCount/$($checks.Count) muc)" -ForegroundColor $(if ($score -ge 80) {"Green"} elseif ($score -ge 50) {"Yellow"} else {"Red"})
+    Write-Host "  Diem sach: $score% ($cleanCount/$totalChecks muc)" -ForegroundColor $scoreColor
 
     if ($score -lt 100) {
         Write-Host ""
@@ -471,7 +493,10 @@ Initialize-Logger -BasePath $global:USBRoot
 Show-Banner
 
 # Ghi log bat dau
-$modeText = if ($global:IsDryRun) { "DRY-RUN" } else { "PRODUCTION" }
+$modeText = "PRODUCTION"
+if ($global:IsDryRun) {
+    $modeText = "DRY-RUN"
+}
 Write-Log "Bat dau USB Windows History Cleaner v2.0 [$modeText]" -Level "INFO"
 Write-Log "May tinh: $env:COMPUTERNAME | User: $env:USERNAME" -Level "INFO"
 
@@ -515,8 +540,8 @@ switch ($cleanMode) {
         $modulesToRun = @("1", "2", "3", "4", "5", "6", "7", "8", "9")
         $moduleNames = @(
             "Event Logs", "USB/Device History", "File History",
-            "Shell Bags", "WiFi History", "Browser History (24+ loai)",
-            "App History & Timeline", "Advanced Clean", "System Cache & Deep Clean"
+            "Shell Bags", "WiFi History", "Browser History",
+            "App History", "Advanced Clean", "System Cache"
         )
         $cleanModeText = "DEEP CLEAN"
     }
@@ -526,8 +551,8 @@ switch ($cleanMode) {
         $modulesToRun = $customModules
         $moduleMap = @{
             "1" = "Event Logs"; "2" = "USB/Device History"; "3" = "File History"
-            "4" = "Shell Bags"; "5" = "WiFi History"; "6" = "Browser History (24+ loai)"
-            "7" = "App History & Timeline"; "8" = "Advanced Clean"; "9" = "System Cache & Deep Clean"
+            "4" = "Shell Bags"; "5" = "WiFi History"; "6" = "Browser History"
+            "7" = "App History"; "8" = "Advanced Clean"; "9" = "System Cache"
         }
         $moduleNames = $modulesToRun | ForEach-Object { $moduleMap[$_] } | Where-Object { $_ }
         $cleanModeText = "CUSTOM"
@@ -544,8 +569,8 @@ switch ($cleanMode) {
         $modulesToRun = @("1", "2", "3", "4", "5", "6", "7", "8", "9")
         $moduleNames = @(
             "Event Logs", "USB/Device History", "File History",
-            "Shell Bags", "WiFi History", "Browser History (24+ loai)",
-            "App History & Timeline", "Advanced Clean", "System Cache & Deep Clean"
+            "Shell Bags", "WiFi History", "Browser History",
+            "App History", "Advanced Clean", "System Cache"
         )
         $cleanModeText = "TEST (DRY-RUN) - ALL MODULES"
     }
@@ -577,7 +602,10 @@ if (-not $confirmed) {
 # ============================================================
 
 Write-Host ""
-$headerText = if ($global:IsDryRun) { "BAT DAU TEST (DRY-RUN)..." } else { "BAT DAU XOA LICH SU..." }
+$headerText = "BAT DAU XOA LICH SU..."
+if ($global:IsDryRun) {
+    $headerText = "BAT DAU TEST (DRY-RUN)..."
+}
 Write-Log $headerText -Level "HEADER"
 Write-Host ""
 
@@ -607,12 +635,19 @@ if (-not $global:IsDryRun) {
 
 $stats = Get-CleanStats
 
+$modeReportLabel = $cleanModeText
+if ($global:IsDryRun) {
+    $modeReportLabel += " [DRY-RUN]"
+}
+
+$userNamesList = $selectedUsers | ForEach-Object { $_.Name }
+
 $reportPath = Generate-CleanReport `
     -BasePath $global:USBRoot `
     -Stats $stats `
     -ModulesRun $completedModules `
-    -SelectedUsers ($selectedUsers | ForEach-Object { $_.Name }) `
-    -CleanMode "$cleanModeText $(if($global:IsDryRun){'[DRY-RUN]'})" `
+    -SelectedUsers $userNamesList `
+    -CleanMode $modeReportLabel `
     -StartTime $global:StartTime
 
 Show-CleanSummary -Stats $stats -ReportPath $reportPath
@@ -631,10 +666,9 @@ if (-not $global:IsDryRun) {
     } catch { }
 }
 
-$endMessage = if ($global:IsDryRun) {
-    "TEST HOAN TAT! Xem log de kiem tra."
-} else {
-    "HOAN TAT! Co the rut USB an toan."
+$endMessage = "HOAN TAT! Co the rut USB an toan."
+if ($global:IsDryRun) {
+    $endMessage = "TEST HOAN TAT! Xem log de kiem tra."
 }
 
 Write-Host "  ============================================" -ForegroundColor Green

@@ -24,6 +24,11 @@ function Generate-CleanReport {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $reportFile = Join-Path $reportDir "report_$timestamp.txt"
 
+    $resultText = "HOAN TAT VOI " + $Stats.Errors + " LOI"
+    if ($Stats.Errors -eq 0) {
+        $resultText = "THANH CONG - KHONG CO LOI"
+    }
+
     $report = @"
 ================================================================
      BAO CAO XOA LICH SU - USB WINDOWS HISTORY CLEANER
@@ -71,7 +76,7 @@ function Generate-CleanReport {
   Loi gap phai         : $($Stats.Errors)
 
 ================================================================
-  KET QUA: $(if ($Stats.Errors -eq 0) { "THANH CONG - KHONG CO LOI" } else { "HOAN TAT VOI $($Stats.Errors) LOI" })
+  KET QUA: $resultText
 ================================================================
 "@
 
