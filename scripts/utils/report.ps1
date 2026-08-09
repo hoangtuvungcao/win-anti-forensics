@@ -29,7 +29,7 @@ function Generate-CleanReport {
 
     $osCaption = "Windows"
     try {
-        $osObj = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+        $osObj = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
         if ($osObj) { $osCaption = $osObj.Caption }
     } catch { }
 

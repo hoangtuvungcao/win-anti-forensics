@@ -656,9 +656,22 @@ $reportParams = @{
     CleanMode     = $modeReportLabel
     StartTime     = $global:StartTime
 }
-$reportPath = Generate-CleanReport @reportParams
 
-Show-CleanSummary -Stats $stats -ReportPath $reportPath
+$ErrorActionPreference = "Continue"
+
+try {
+    $reportPath = Generate-CleanReport @reportParams
+} catch {
+    Write-Log "Loi tao bao cao: $($_.Exception.Message)" -Level "ERROR"
+}
+
+try {
+    Show-CleanSummary -Stats $stats -ReportPath $reportPath
+} catch {
+    Write-Log "Loi hien thi tong ket: $($_.Exception.Message)" -Level "ERROR"
+}
+
+$ErrorActionPreference = "SilentlyContinue"
 
 $logPath = Get-LogFilePath
 Write-Host "  File log chi tiet: $logPath" -ForegroundColor DarkGray
