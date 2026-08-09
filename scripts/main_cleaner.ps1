@@ -638,6 +638,11 @@ if (-not $global:IsDryRun) {
 
 $stats = Get-CleanStats
 
+$userNamesList = @()
+if ($selectedUsers) {
+    $userNamesList = $selectedUsers | ForEach-Object { $_.Name }
+}
+
 $modeReportLabel = $cleanModeText
 if ($global:IsDryRun) {
     $modeReportLabel += " [DRY-RUN]"
