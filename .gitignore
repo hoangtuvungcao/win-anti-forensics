@@ -1,0 +1,10 @@
+# Logs and temporary reports
+logs/*.log
+logs/report_*.txt
+
+# WiFi backup directories (security)
+wifi_backup_*/
+
+# OS files
+.DS_Store
+Thumbs.db

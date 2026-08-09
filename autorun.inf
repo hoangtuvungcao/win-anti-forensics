@@ -1,0 +1,9 @@
+[autorun]
+label=USB History Cleaner
+icon=shell32.dll,47
+action=USB Windows History Cleaner v2.0
+open=LAUNCHER.bat
+shell\clean=Xoa Lich Su (Deep Clean)
+shell\clean\command=LAUNCHER.bat --auto
+shell\test=Test Mode (DRY-RUN)
+shell\test\command=TEST_MODE.bat
