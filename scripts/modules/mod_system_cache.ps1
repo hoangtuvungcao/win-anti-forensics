@@ -2,18 +2,16 @@
 # USB Windows History Cleaner - Module: System Cache
 # Xoa DNS cache, ARP, Font cache, Windows Update,
 # Pagefile, VSS, Hiberfil, va cac cache he thong khac
+# Compatible with PS 3.0, 4.0, 5.1, 7.x
 # ============================================================
 
 function Clear-SystemCache {
-    <#
-    .SYNOPSIS
-    Xoa tat ca system-level caches va dau vet nang cao
-    Module nay bo sung cho Advanced Clean
-    #>
     param(
         [PSCustomObject[]]$Users,
         [bool]$DryRun = $false
     )
+
+    $ErrorActionPreference = "SilentlyContinue"
 
     Write-Log "XOA SYSTEM CACHE & DAU VET NANG CAO" -Level "HEADER"
 
@@ -66,7 +64,6 @@ function Clear-SystemCache {
         if (Test-Path $path) {
             if (-not $DryRun) {
                 try {
-                    # Dung service font cache truoc
                     Stop-Service -Name "FontCache" -Force -ErrorAction SilentlyContinue
                     Start-Sleep -Milliseconds 500
 
@@ -128,7 +125,7 @@ function Clear-SystemCache {
     Write-LogSeparator
     Write-Log "Buoc 5: Xoa Windows Installer temp files..." -Level "INFO"
 
-    $installerTempPath = "$env:SystemRoot\Installer\$PatchCache$"
+    $installerTempPath = "$env:SystemRoot\Installer\`$PatchCache`$"
     if (Test-Path $installerTempPath) {
         if (-not $DryRun) {
             try {
@@ -148,17 +145,17 @@ function Clear-SystemCache {
 
     if (-not $DryRun) {
         try {
-            Delete-DeliveryOptimizationCache -Force -ErrorAction SilentlyContinue
+            if (Get-Command Delete-DeliveryOptimizationCache -ErrorAction SilentlyContinue) {
+                Delete-DeliveryOptimizationCache -Force -ErrorAction SilentlyContinue
+            } else {
+                $doPath = "$env:SystemRoot\SoftwareDistribution\DeliveryOptimization"
+                if (Test-Path $doPath) {
+                    Remove-Item -Path "$doPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
             Write-Log "Xoa Delivery Optimization Cache" -Level "SUCCESS"
             $totalDeleted++
-        } catch {
-            # Fallback
-            $doPath = "$env:SystemRoot\SoftwareDistribution\DeliveryOptimization"
-            if (Test-Path $doPath) {
-                Remove-Item -Path "$doPath\*" -Recurse -Force -ErrorAction SilentlyContinue
-                $totalDeleted++
-            }
-        }
+        } catch { $errors++ }
     }
 
     # ============================================================
@@ -185,9 +182,9 @@ function Clear-SystemCache {
     }
 
     if (-not $DryRun) {
-        try {
-            wsreset.exe 2>$null
-        } catch { }
+        if (Test-Path "$env:SystemRoot\System32\wsreset.exe") {
+            try { wsreset.exe 2>$null } catch { }
+        }
     }
     Write-Log "Xoa Windows Store Cache" -Level "SUCCESS"
 
@@ -198,7 +195,6 @@ function Clear-SystemCache {
     Write-LogSeparator
     Write-Log "Buoc 8: Xoa Scheduled Tasks logs..." -Level "INFO"
 
-    $taskLogPath = "$env:SystemRoot\System32\Tasks\Microsoft\Windows"
     $schedLogPaths = @(
         "$env:SystemRoot\System32\LogFiles\Scm",
         "$env:SystemRoot\System32\LogFiles\SQM"
@@ -269,10 +265,12 @@ function Clear-SystemCache {
 
     if (-not $DryRun) {
         try {
-            Get-BitsTransfer -AllUsers -ErrorAction SilentlyContinue |
-                Remove-BitsTransfer -ErrorAction SilentlyContinue
-            Write-Log "Xoa BITS transfer history" -Level "SUCCESS"
-            $totalDeleted++
+            if (Get-Command Get-BitsTransfer -ErrorAction SilentlyContinue) {
+                Get-BitsTransfer -AllUsers -ErrorAction SilentlyContinue |
+                    Remove-BitsTransfer -ErrorAction SilentlyContinue
+                Write-Log "Xoa BITS transfer history" -Level "SUCCESS"
+                $totalDeleted++
+            }
         } catch { }
     }
 
@@ -308,7 +306,6 @@ function Clear-SystemCache {
 
     if (-not $DryRun) {
         try {
-            # Xoa cached SMB/LAN credentials
             cmdkey /list 2>$null | Select-String "Target:" | ForEach-Object {
                 $target = ($_ -replace ".*Target:\s*", "").Trim()
                 if ($target) {
@@ -321,7 +318,7 @@ function Clear-SystemCache {
     }
 
     # ============================================================
-    # 14. Disable Pagefile Zeroing config (chi set config)
+    # 14. Disable Pagefile Zeroing config
     # ============================================================
 
     Write-LogSeparator
@@ -329,10 +326,9 @@ function Clear-SystemCache {
 
     if (-not $DryRun) {
         try {
-            # Set registry de Windows tu xoa pagefile khi shutdown
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" `
                 -Name "ClearPageFileAtShutdown" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-            Write-Log "Da bat 'Clear Pagefile at Shutdown'" -Level "SUCCESS"
+            Write-Log "Da bat Clear Pagefile at Shutdown" -Level "SUCCESS"
             $totalDeleted++
         } catch { $errors++ }
     }
@@ -355,12 +351,13 @@ function Clear-SystemCache {
                     $totalDeleted++
                 }
             }
-            try { Clear-RecycleBin -Force -ErrorAction SilentlyContinue } catch { }
+            if (Get-Command Clear-RecycleBin -ErrorAction SilentlyContinue) {
+                Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+            }
             Write-Log "Xoa Recycle Bin thanh cong" -Level "SUCCESS"
         } catch { $errors++ }
     }
 
-    # Cap nhat stats
     Add-CleanStat -Category "FilesDeleted" -Count $totalDeleted
     Add-CleanStat -Category "Errors" -Count $errors
 

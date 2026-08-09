@@ -40,9 +40,7 @@ function Clear-AdvancedHistory {
 
         # Dung COM object de don sach
         try {
-            $shell = New-Object -ComObject Shell.Application
-            $recycleBin = $shell.NameSpace(0x0a)
-            if ($recycleBin -and $recycleBin.Items().Count -gt 0) {
+            if (Get-Command Clear-RecycleBin -ErrorAction SilentlyContinue) {
                 Clear-RecycleBin -Force -ErrorAction SilentlyContinue
             }
         } catch { }

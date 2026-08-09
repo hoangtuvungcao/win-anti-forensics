@@ -23,16 +23,23 @@ function Get-WindowsUsers {
             $ntUserPath = Join-Path $profile.FullName "NTUSER.DAT"
             $hasNtUser = Test-Path $ntUserPath
 
-            # Kiem tra user co phai admin khong
+            # Kiem tra user co phai admin khong (tuong thich PS 4.0 / Server 2012 R2)
             $isAdmin = $false
             try {
-                $localUser = Get-LocalUser -Name $profile.Name -ErrorAction SilentlyContinue
-                if ($localUser) {
-                    $groups = Get-LocalGroupMember -Group "Administrators" -ErrorAction SilentlyContinue
-                    $isAdmin = $groups | Where-Object { $_.Name -like "*\$($profile.Name)" }
+                if (Get-Command Get-LocalUser -ErrorAction SilentlyContinue) {
+                    $localUser = Get-LocalUser -Name $profile.Name -ErrorAction SilentlyContinue
+                    if ($localUser) {
+                        $groups = Get-LocalGroupMember -Group "Administrators" -ErrorAction SilentlyContinue
+                        $isAdmin = [bool]($groups | Where-Object { $_.Name -like "*\$($profile.Name)" })
+                    }
+                } else {
+                    $adminOutput = net localgroup Administrators 2>$null
+                    if ($adminOutput -match $profile.Name) {
+                        $isAdmin = $true
+                    }
                 }
             } catch {
-                # Ignore - co the khong co quyen query
+                $isAdmin = $false
             }
 
             if ($hasNtUser) {
